@@ -56,6 +56,14 @@ perms() { local i file=/etc/samba/smb.conf
     done
 }
 
+### recycle: disable recycle bin
+# Arguments:
+#   none)
+# Return: result
+recycle() { local file=/etc/samba/smb.conf
+    sed -i '/recycle/d; /vfs/d' $file
+}
+
 ### share: Add share
 # Arguments:
 #   share) share name
@@ -76,6 +84,10 @@ share() { local share="$1" path="$2" browsable=${3:-yes} ro=${4:-yes} \
     echo "   browsable = $browsable" >>$file
     echo "   read only = $ro" >>$file
     echo "   guest ok = $guest" >>$file
+    echo -n "   veto files = /._*/.apdisk/.AppleDouble/.DS_Store/" >>$file
+    echo -n ".TemporaryItems/.Trashes/desktop.ini/ehthumbs.db/" >>$file
+    echo "Network Trash Folder/Temporary Items/Thumbs.db/" >>$file
+    echo "   delete veto files = yes" >>$file
     [[ ${users:-""} && ! ${users:-""} =~ all ]] &&
         echo "   valid users = $(tr ',' ' ' <<< $users)" >>$file
     [[ ${admins:-""} && ! ${admins:-""} =~ none ]] &&
@@ -107,6 +119,7 @@ timezone() { local timezone="${1:-EST5EDT}"
 #   name) for user
 #   password) for user
 #   id) for user
+#   group) for user
 # Return: user added to container
 user() { local name="${1}" passwd="${2}" id="${3:-""}" group="${4:-""}"
     [[ "$group" ]] && { grep -q "^$group:" /etc/group || groupadd "$group"; }
@@ -136,6 +149,7 @@ Options (fields in '[]' are optional, '<>' are required):
                 required arg: \"<path>\" - full file path in container
     -n          Start the 'nmbd' daemon to advertise the shares
     -p          Set ownership and permissions on the shares
+    -r          Disable recycle bin for shares
     -s \"<name;/path>[;browse;readonly;guest;users;admins;wl]\" Config a share
                 required arg: \"<name>;<comment>;</path>\"
                 <name> is how it's called for clients
@@ -167,13 +181,14 @@ The 'command' (if provided and valid) will be run instead of samba
 [[ "${USERID:-""}" =~ ^[0-9]+$ ]] && usermod -u $USERID -o smbuser
 [[ "${GROUPID:-""}" =~ ^[0-9]+$ ]] && groupmod -g $GROUPID -o users
 
-while getopts ":hc:i:nps:t:u:w:" opt; do
+while getopts ":hc:i:nprs:t:u:w:" opt; do
     case "$opt" in
         h) usage ;;
         c) charmap "$OPTARG" ;;
         i) import "$OPTARG" ;;
         n) NMBD="true" ;;
         p) PERMISSIONS="true" ;;
+        r) recycle ;;
         s) eval share $(sed 's/^\|$/"/g; s/;/" "/g' <<< $OPTARG) ;;
         t) timezone "$OPTARG" ;;
         u) eval user $(sed 's|;| |g' <<< $OPTARG) ;;
@@ -185,9 +200,10 @@ done
 shift $(( OPTIND - 1 ))
 
 [[ "${CHARMAP:-""}" ]] && charmap "$CHARMAP"
+[[ "${PERMISSIONS:-""}" ]] && perms
+[[ "${RECYCLE:-""}" ]] && recycle
 [[ "${TZ:-""}" ]] && timezone "$TZ"
 [[ "${WORKGROUP:-""}" ]] && workgroup "$WORKGROUP"
-[[ "${PERMISSIONS:-""}" ]] && perms
 
 if [[ $# -ge 1 && -x $(which $1 2>&-) ]]; then
     exec "$@"
