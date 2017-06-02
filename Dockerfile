@@ -5,9 +5,9 @@ MAINTAINER David Personette <dperson@gmail.com>
 RUN export DEBIAN_FRONTEND='noninteractive' && \
     apt-get update -qq && \
     apt-get install -qqy --no-install-recommends procps samba samba-vfs-modules\
-                $(apt-get -s dist-upgrade|awk '/^Inst.*ecurity/ {print $2}') &&\
-    useradd -c 'Samba User' -d /tmp -M -r smbuser && \
-    sed -i 's|^\(   log file = \).*|\1/dev/stdout|' /etc/samba/smb.conf && \
+                $(apt-get -s dist-upgrade|awk '/^Inst.*ecurity/ {print $2}') 
+RUN    useradd -c 'Samba User' -d /tmp -M -r smbuser 
+RUN    sed -i 's|^\(   log file = \).*|\1/dev/stdout|' /etc/samba/smb.conf && \
     sed -i 's|^\(   unix password sync = \).*|\1no|' /etc/samba/smb.conf && \
     sed -i '/Share Definitions/,$d' /etc/samba/smb.conf && \
     echo '   local master = yes' >>/etc/samba/smb.conf && \
