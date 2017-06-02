@@ -10,6 +10,8 @@ RUN export DEBIAN_FRONTEND='noninteractive' && \
     sed -i 's|^\(   log file = \).*|\1/dev/stdout|' /etc/samba/smb.conf && \
     sed -i 's|^\(   unix password sync = \).*|\1no|' /etc/samba/smb.conf && \
     sed -i '/Share Definitions/,$d' /etc/samba/smb.conf && \
+    echo '   local master = yes' >>/etc/samba/smb.conf && \
+    echo '   preferred master = yes' >>/etc/samba/smb.conf && \
     echo '   security = user' >>/etc/samba/smb.conf && \
     echo '   create mask = 0664' >>/etc/samba/smb.conf && \
     echo '   force create mode = 0664' >>/etc/samba/smb.conf && \
